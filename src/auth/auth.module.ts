@@ -14,7 +14,7 @@ import { JwtStrategy } from './jwt.strategy';
     JwtModule.register({
       secret: 'topSecret51',
       signOptions: {
-        expiresIn: 24 * 60 * 60 * 1000,
+        expiresIn: 24 * 60 * 60 * 1000 * 7,
       },
     }),
     TypeOrmModule.forFeature([User]),
@@ -24,3 +24,4 @@ import { JwtStrategy } from './jwt.strategy';
   exports: [JwtStrategy, PassportModule],
 })
 export class AuthModule {}
+

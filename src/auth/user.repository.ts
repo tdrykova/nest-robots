@@ -6,8 +6,9 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { AuthCredentialsDto } from './dto/auth-credentials.dto';
 import * as bcrypt from 'bcrypt';
+import { AuthRegisterDto } from './dto/auth-register.dto';
+import { AuthLoginDto } from './dto/auth-login.dto';
 
 @Injectable()
 export class UserRepository extends Repository<User> {
@@ -15,7 +16,7 @@ export class UserRepository extends Repository<User> {
     super(User, dataSource.createEntityManager());
   }
 
-  async signUp(authCredentialsDto: AuthCredentialsDto): Promise<void> {
+  async register(authCredentialsDto: AuthRegisterDto): Promise<void> {
     const { username, password } = authCredentialsDto;
 
     const user = new User();
@@ -45,10 +46,10 @@ export class UserRepository extends Repository<User> {
   }
 
   async validateUserPassword(
-    authCredentialsDto: AuthCredentialsDto,
+    authCredentialsDto: AuthLoginDto  ,
   ): Promise<string> {
-    const { username, password } = authCredentialsDto;
-    const user = await this.findOne({ where: { username: username } });
+    const { email, password } = authCredentialsDto;
+    const user = await this.findOne({ where: { email: email } });
 
     if (user && (await user.validatePassword(password))) {
       return user.username;

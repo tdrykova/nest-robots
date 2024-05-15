@@ -1,9 +1,10 @@
 import { HttpStatus, Injectable, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
 import { UserRepository } from './user.repository';
-import { AuthCredentialsDto } from './dto/auth-credentials.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './jwt-payload.interface';
 import { TokenLoginDto } from './dto/token-login.dto';
+import { AuthRegisterDto } from './dto/auth-register.dto';
+import { AuthLoginDto } from './dto/auth-login.dto';
 
 @Injectable()
 export class AuthService {
@@ -13,40 +14,38 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async signUp(authCredentialsDto: AuthCredentialsDto): Promise<void> {
-    await this.userRepository.signUp(authCredentialsDto);
+  async register(authCredentialsDto: AuthRegisterDto): Promise<void> {
+    await this.userRepository.register(authCredentialsDto);
   }
 
-  async signIn(
-    authCredentialsDto: AuthCredentialsDto,
-  ): Promise<TokenLoginDto> {
-
+  async login(authLoginDto: AuthLoginDto): Promise<TokenLoginDto> {
     try {
-    const username = await this.userRepository.validateUserPassword(authCredentialsDto);
+      const username =
+        await this.userRepository.validateUserPassword(authLoginDto);
 
-    if (!username) {
-      throw new UnauthorizedException('Invalid credentials');
+      if (!username) {
+        throw new UnauthorizedException('Такого пользователя не существует');
+      }
+
+      const payload: JwtPayload = { username };
+      const accessToken = await this.jwtService.sign(payload);
+
+      const tokenDto = new TokenLoginDto(accessToken, 24 * 60 * 60 * 1000 * 7);
+
+      return tokenDto;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException({
+          statusCode: HttpStatus.UNAUTHORIZED,
+          message: ['Такого пользователя не существует'],
+          error: 'Unauthorized',
+        });
+      } else {
+        throw new InternalServerErrorException({
+          message: 'Произошла внутренняя ошибка сервера',
+          errorCode: 'INTERNAL_SERVER_ERROR_001',
+        });
+      }
     }
-
-    const payload: JwtPayload = { username };
-    const accessToken = await this.jwtService.sign(payload);
-    this.logger.debug(
-      `Generated JWT token with payload: ${JSON.stringify(payload)}`,
-    );
-
-    const tokenDto = new TokenLoginDto(accessToken, 24 * 60 * 60 * 1000)
-
-    return tokenDto;
-  } catch (error) {
-    if (error instanceof UnauthorizedException) {
-      throw new UnauthorizedException({
-        statusCode: HttpStatus.UNAUTHORIZED,
-        message: ['Неверные учетные данные. Проверьте введенные данные и попробуйте еще раз.'],
-        error: 'Unauthorized',
-      });
-    } else {
-      throw new InternalServerErrorException();
-    }
-  }
   }
 }
